@@ -132,19 +132,67 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 
-OUTPUT_DIR = "flower_output"
-
 FLAGS = None
 
 MAX_NUM_IMAGES_PER_CLASS = 2 ** 27 - 1  # ~134M
 
 # The location where variable checkpoints will be stored.
-CHECKPOINT_NAME = '%s/_retrain_checkpoint' % OUTPUT_DIR
 
 # A module is understood as instrumented for quantization with TF-Lite
 # if it contains any of these ops.
 FAKE_QUANT_OPS = ('FakeQuantWithMinMaxVars',
                   'FakeQuantWithMinMaxVarsPerChannel')
+
+# 参数配置列表：
+
+# 所需图片的文件夹
+IMAGE_DIR = "flower_photos"
+# 训练完成的graph的保存位置
+OUTPUT_GRAPH = "flower_output/graph.pb"
+# 多少步保存一次中间graph，0表示不保存中间graph
+INTERMEDIATE_STORE_FREQUENCY = 0
+# 中间graph的保存位置
+INTERMEDIATE_OUTPUT_GRAPHS_DIR = "flower_output/intermediate_graph/"
+# 标签列表文件的保存位置
+OUTPUT_LABELS = "flower_output/labels.txt"
+# TensorBoard摘要文件的保存位置（TensorBoard可用于可视化训练过程）
+SUMMARIES_DIR = "flower_output/retrain_logs"
+# 检查点名称
+CHECKPOINT_NAME = "flower_output/_retrain_checkpoint"
+# 训练步数
+HOW_MANY_TRAINING_STEPS = 4000
+# 学习率
+LEARNING_RATE = 0.01
+# 要用作测试集的图像的百分比
+TESTING_PERCENTAGE = 10
+# 要用作验证集的图像的百分比
+VALIDATION_PERCENTAGE = 10
+# 多少步评估一次训练结果
+EVAL_STEP_INTERVAL = 10
+# 一次训练多少个图像
+TRAIN_BATCH_SIZE = 100
+# 用多少个图像评估最终结果，-1表示应用整个验证集
+TEST_BATCH_SIZE = -1
+# 每次中间过程评估用多少个图像
+VALIDATION_BATCH_SIZE = 100
+# 是否打印错误分类的图像列表
+PRINT_MISCLASSIFIED_TEST_IMAGES = False
+# 瓶颈层缓存位置
+BOTTLENECK_DIR = "flower_output/bottleneck"
+# 输出层的名称
+FINAL_TENSOR_NAME = "final_result"
+# 是否允许左右翻转图像
+FLIP_LEFT_RIGHT = False
+# 随机剪裁图像的百分比
+RANDOM_CROP = 0
+# 随机缩放图像的百分比
+RANDOM_SCALE = 0
+# 随机调亮度的百分比
+RANDOM_BRIGHTNESS = 0
+# 选用的训练模型
+TFHUB_MODULE = 'https://tfhub.dev/google/imagenet/mobilenet_v1_100_224/feature_vector/1'
+# 保存模型文件夹
+SAVED_MODEL_DIR = ""
 
 
 def create_image_lists(image_dir, testing_percentage, validation_percentage):
@@ -1145,25 +1193,25 @@ if __name__ == '__main__':
     parser.add_argument(
         '--image_dir',
         type=str,
-        default='loomo_photos',
+        default=IMAGE_DIR,
         help='Path to folders of labeled images.'
     )
     parser.add_argument(
         '--output_graph',
         type=str,
-        default='%s/output_graph.pb' % OUTPUT_DIR,
+        default=OUTPUT_GRAPH,
         help='Where to save the trained graph.'
     )
     parser.add_argument(
         '--intermediate_output_graphs_dir',
         type=str,
-        default='%s/intermediate_graph/' % OUTPUT_DIR,
+        default=INTERMEDIATE_OUTPUT_GRAPHS_DIR,
         help='Where to save the intermediate graphs.'
     )
     parser.add_argument(
         '--intermediate_store_frequency',
         type=int,
-        default=0,
+        default=INTERMEDIATE_STORE_FREQUENCY,
         help="""\
          How many steps to store intermediate graph. If "0" then will not
          store.\
@@ -1172,55 +1220,55 @@ if __name__ == '__main__':
     parser.add_argument(
         '--output_labels',
         type=str,
-        default='%s/output_labels.txt' % OUTPUT_DIR,
+        default=OUTPUT_LABELS,
         help='Where to save the trained graph\'s labels.'
     )
     parser.add_argument(
         '--summaries_dir',
         type=str,
-        default='%s/retrain_logs' % OUTPUT_DIR,
+        default=SUMMARIES_DIR,
         help='Where to save summary logs for TensorBoard.'
     )
     parser.add_argument(
         '--how_many_training_steps',
         type=int,
-        default=4000,
+        default=HOW_MANY_TRAINING_STEPS,
         help='How many training steps to run before ending.'
     )
     parser.add_argument(
         '--learning_rate',
         type=float,
-        default=0.01,
+        default=LEARNING_RATE,
         help='How large a learning rate to use when training.'
     )
     parser.add_argument(
         '--testing_percentage',
         type=int,
-        default=10,
+        default=TESTING_PERCENTAGE,
         help='What percentage of images to use as a test set.'
     )
     parser.add_argument(
         '--validation_percentage',
         type=int,
-        default=10,
+        default=VALIDATION_PERCENTAGE,
         help='What percentage of images to use as a validation set.'
     )
     parser.add_argument(
         '--eval_step_interval',
         type=int,
-        default=10,
+        default=EVAL_STEP_INTERVAL,
         help='How often to evaluate the training results.'
     )
     parser.add_argument(
         '--train_batch_size',
         type=int,
-        default=100,
+        default=TRAIN_BATCH_SIZE,
         help='How many images to train on at a time.'
     )
     parser.add_argument(
         '--test_batch_size',
         type=int,
-        default=-1,
+        default=TEST_BATCH_SIZE,
         help="""\
       How many images to test on. This test set is only used once, to evaluate
       the final accuracy of the model after training completes.
@@ -1231,7 +1279,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--validation_batch_size',
         type=int,
-        default=100,
+        default=VALIDATION_BATCH_SIZE,
         help="""\
       How many images to use in an evaluation batch. This validation set is
       used much more often than the test set, and is an early indicator of how
@@ -1243,7 +1291,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--print_misclassified_test_images',
-        default=False,
+        default=PRINT_MISCLASSIFIED_TEST_IMAGES,
         help="""\
       Whether to print out a list of all misclassified test images.\
       """,
@@ -1252,20 +1300,20 @@ if __name__ == '__main__':
     parser.add_argument(
         '--bottleneck_dir',
         type=str,
-        default='%s/bottleneck' % OUTPUT_DIR,
+        default=BOTTLENECK_DIR,
         help='Path to cache bottleneck layer values as files.'
     )
     parser.add_argument(
         '--final_tensor_name',
         type=str,
-        default='final_result',
+        default=FINAL_TENSOR_NAME,
         help="""\
       The name of the output classification layer in the retrained graph.\
       """
     )
     parser.add_argument(
         '--flip_left_right',
-        default=True,
+        default=FLIP_LEFT_RIGHT,
         help="""\
       Whether to randomly flip half of the training images horizontally.\
       """,
@@ -1274,7 +1322,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--random_crop',
         type=int,
-        default=5,
+        default=RANDOM_CROP,
         help="""\
       A percentage determining how much of a margin to randomly crop off the
       training images.\
@@ -1283,7 +1331,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--random_scale',
         type=int,
-        default=5,
+        default=RANDOM_SCALE,
         help="""\
       A percentage determining how much to randomly scale up the size of the
       training images by.\
@@ -1292,7 +1340,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--random_brightness',
         type=int,
-        default=5,
+        default=RANDOM_BRIGHTNESS,
         help="""\
       A percentage determining how much to randomly multiply the training image
       input pixels up or down by.\
@@ -1301,8 +1349,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--tfhub_module',
         type=str,
-        default=(
-            'https://tfhub.dev/google/imagenet/mobilenet_v1_100_224/feature_vector/1'),
+        default=TFHUB_MODULE,
         help="""\
       Which TensorFlow Hub module to use.
       See https://github.com/tensorflow/hub/blob/master/docs/modules/image.md
@@ -1311,7 +1358,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--saved_model_dir',
         type=str,
-        default='',
+        default=SAVED_MODEL_DIR,
         help='Where to save the exported graph.')
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

@@ -22,6 +22,27 @@ import argparse
 import numpy as np
 import tensorflow as tf
 
+# 参数配置列表：
+
+# 验证图片文件
+IMAGE = "flower_photos\\daisy\\5547758_eea9edfd54_n.jpg"
+# graph文件
+GRAPH = "flower_output/graph.pb"
+# labels文件
+LABELS = "flower_output/labels.txt"
+# 输入图像高度
+INPUT_HEIGHT = 224
+# 输入图像宽度
+INPUT_WIDTH = 224
+# 输入数据的均值
+INPUT_MEAN = 0
+# 输入数据的标准值
+INPUT_STD = 255
+# 输入层名称
+INPUT_LAYER = "Placeholder"
+# 输出层名称
+OUTPUT_LAYER = "final_result"
+
 
 def load_graph(model_file):
     graph = tf.Graph()
@@ -36,8 +57,8 @@ def load_graph(model_file):
 
 
 def read_tensor_from_image_file(file_name,
-                                input_height=224,
-                                input_width=224,
+                                input_height=INPUT_HEIGHT,
+                                input_width=INPUT_WIDTH,
                                 input_mean=0,
                                 input_std=255):
     input_name = "file_reader"
@@ -77,10 +98,10 @@ if __name__ == "__main__":
     model_file = \
         "tensorflow/examples/label_image/data/inception_v3_2016_08_28_frozen.pb"
     label_file = "tensorflow/examples/label_image/data/imagenet_slim_labels.txt"
-    input_height = 224
-    input_width = 224
-    input_mean = 0
-    input_std = 255
+    input_height = INPUT_HEIGHT
+    input_width = INPUT_HEIGHT
+    input_mean = INPUT_MEAN
+    input_std = INPUT_STD
     input_layer = "input"
     output_layer = "InceptionV3/Predictions/Reshape_1"
 
@@ -88,29 +109,27 @@ if __name__ == "__main__":
     parser.add_argument(
         "--image",
         help="image to be processed",
-        default='test/th-724191.jpg'
+        default=IMAGE
     )
     parser.add_argument(
         "--graph",
         help="graph/model to be executed",
-        default='wallpaper_output/output_graph.pb'
+        default=GRAPH
     )
     parser.add_argument(
         "--labels",
         help="name of file containing labels",
-        default='wallpaper_output/output_labels.txt'
+        default=LABELS
     )
     parser.add_argument(
         "--input_height",
         type=int,
-        help="input height",
-        default=input_height
+        help="input height"
     )
     parser.add_argument(
         "--input_width",
         type=int,
-        help="input width",
-        default=input_width
+        help="input width"
     )
     parser.add_argument(
         "--input_mean",
@@ -125,12 +144,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--input_layer",
         help="name of input layer",
-        default='Placeholder'
+        default=INPUT_LAYER
     )
     parser.add_argument(
         "--output_layer",
         help="name of output layer",
-        default='final_result'
+        default=OUTPUT_LAYER
     )
     args = parser.parse_args()
 
